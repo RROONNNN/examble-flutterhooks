@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -41,6 +43,22 @@ class MyApp extends StatelessWidget {
 var url =
     'https://www.photoshopbuzz.com/wp-content/uploads/change-color-part-of-image-psd16.png';
 
+class CoutDown extends ValueNotifier<int> {
+  late StreamSubscription sub;
+  CoutDown({required int from}) : super(from) {
+    sub = Stream.periodic(const Duration(seconds: 1), (v) => from - v)
+        .takeWhile((element) => element > 0)
+        .listen((event) {
+      this.value = event;
+    });
+  }
+  @override
+  void dispose() {
+    sub.cancel();
+    super.dispose();
+  }
+}
+
 class MyHomePage extends HookWidget {
   MyHomePage({Key? key, required this.title}) : super(key: key);
 
@@ -48,12 +66,17 @@ class MyHomePage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    print("aa\n");
     var future = useMemoized(() => NetworkAssetBundle(Uri.parse(url))
         .load(url)
         .then((data) => data.buffer.asUint8List())
         .then((data) => Image.memory(data)));
-  var  snapshot = useFuture(future);
+    var snapshot = useFuture(future);
+
+    var c = useMemoized(() => CoutDown(from: 20));
+    var listen = useListenable(c);
+    print("${c.value.toString()}\n");
+
+    useEffect(() {});
 
     return Scaffold(
       appBar: AppBar(
@@ -68,7 +91,7 @@ class MyHomePage extends HookWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () {},
         tooltip: 'Increment',
-        child: Icon(Icons.add),
+        child: Text(listen.value.toString()),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
